@@ -1,0 +1,16 @@
+[Unit]
+Description=WintoEurope Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vpn-bot
+EnvironmentFile=/opt/vpn-bot/.env
+ExecStart=/opt/vpn-bot/.venv/bin/python /opt/vpn-bot/back.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
