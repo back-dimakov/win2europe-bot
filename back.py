@@ -184,14 +184,6 @@ router = Router()
 
 def require_token() -> None:
     if not BOT_TOKEN or BOT_TOKEN == "PASTE_YOUR_BOT_TOKEN_HERE":
-        raise RuntimeError(
-            "Укажи токен бота в переменной окружения BOT_TOKEN "
-            "или замени значение BOT_TOKEN в файле бэк.py."
-        )
-
-
-def require_token() -> None:
-    if not BOT_TOKEN or BOT_TOKEN == "PASTE_YOUR_BOT_TOKEN_HERE":
         raise RuntimeError("Set BOT_TOKEN in the environment or in the local .env file.")
 
 
@@ -366,31 +358,6 @@ def reply_menu_keyboard() -> ReplyKeyboardMarkup:
         is_persistent=True,
         input_field_placeholder="Выберите действие",
     )
-
-
-def user_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Тарифы", callback_data="open_plans")],
-            [InlineKeyboardButton(text="Моя подписка", callback_data="my_vpn")],
-            [InlineKeyboardButton(text="Поддержка", url=SUPPORT_URL)],
-        ]
-    )
-
-
-def plans_keyboard() -> InlineKeyboardMarkup:
-    rows = []
-    for plan in PLANS.values():
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=f"{plan.title} • {plan.stars} ⭐",
-                    callback_data=f"buy:{plan.code}",
-                )
-            ]
-        )
-    rows.append([InlineKeyboardButton(text="Моя подписка", callback_data="my_vpn")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def build_payload(plan_code: str, telegram_user_id: int) -> str:
@@ -976,32 +943,6 @@ async def submit_refund_request(message: Message, bot: Bot) -> None:
         reply_markup=reply_menu_keyboard(),
     )
 
-def user_status_text(row: Optional[sqlite3.Row]) -> str:
-    if not row:
-        return (
-            "Подписка еще не оформлена.\n\n"
-            "Нажми /plans, выбери тариф и после оплаты бот выдаст тебе ссылку автоматически."
-        )
-
-    status = "активна" if row["is_active"] else "неактивна"
-    return (
-        f"Статус: {status}\n"
-        f"Marzban username: `{row['marzban_username']}`\n"
-        f"Активна до: {fmt_ts(row['paid_until'])}\n"
-        f"Подписка: {row['subscription_url']}"
-    )
-
-
-def payment_success_text(plan: Plan, row: sqlite3.Row) -> str:
-    return (
-        "Оплата получена.\n\n"
-        f"Тариф: {plan.title}\n"
-        f"Активна до: {fmt_ts(row['paid_until'])}\n"
-        f"Ссылка подключения: {row['subscription_url']}\n\n"
-        "Импортируй эту ссылку в клиент как обычный VLESS-профиль."
-    )
-
-
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -1065,15 +1006,6 @@ def start_message_text() -> str:
         "- быстро открыть поддержку\n\n"
         "Пользуйтесь кнопками внизу экрана."
     )
-    return (
-        "Привет. Это бот Win2Europe VPN.\n\n"
-        "Он умеет:\n"
-        "- показывать тарифы\n"
-        "- принимать оплату в Stars\n"
-        "- автоматически продлевать подписку\n"
-        "- отключать просроченные профили\n\n"
-        "Для старта нажми кнопку ниже или введи /plans."
-    )
 
 
 def formatted_user_status_text(row: Optional[sqlite3.Row]) -> str:
@@ -1090,19 +1022,6 @@ def formatted_user_status_text(row: Optional[sqlite3.Row]) -> str:
         f"Активна до: {fmt_ts(row['paid_until'])}\n"
         f"Ссылка для подключения:\n{render_connection_url(row['subscription_url'])}"
     )
-    if not row:
-        return (
-            "Подписка еще не оформлена.\n\n"
-            "Нажми /plans, выбери тариф, и после оплаты бот автоматически пришлет ссылку подключения."
-        )
-
-    status = "активна" if row["is_active"] else "неактивна"
-    return (
-        f"Статус: {status}\n"
-        f"Marzban username: <code>{html.escape(row['marzban_username'], quote=False)}</code>\n"
-        f"Активна до: {fmt_ts(row['paid_until'])}\n"
-        f"Ссылка подключения:\n{render_connection_url(row['subscription_url'])}"
-    )
 
 
 def formatted_payment_success_text(plan: Plan, row: sqlite3.Row) -> str:
@@ -1112,13 +1031,6 @@ def formatted_payment_success_text(plan: Plan, row: sqlite3.Row) -> str:
         f"Активна до: {fmt_ts(row['paid_until'])}\n"
         f"Ссылка для подключения:\n{render_connection_url(row['subscription_url'])}\n\n"
         "Скопируйте ссылку и импортируйте ее в VPN-клиент как обычный VLESS-профиль."
-    )
-    return (
-        "Оплата получена.\n\n"
-        f"Тариф: {plan.title}\n"
-        f"Активна до: {fmt_ts(row['paid_until'])}\n"
-        f"Ссылка подключения:\n{render_connection_url(row['subscription_url'])}\n\n"
-        "Импортируй эту ссылку в клиент как обычный VLESS-профиль."
     )
 
 
@@ -1154,18 +1066,7 @@ def refund_completed_text() -> str:
 
 @router.message(Command("start"))
 async def cmd_start(message: Message) -> None:
-    return await message.answer(start_message_text(), reply_markup=reply_menu_keyboard())
-    text = (
-        "Привет. Это бот Win2Europe VPN.\n\n"
-        "Он умеет:\n"
-        "- показывать тарифы\n"
-        "- принимать оплату в Stars\n"
-        "- автоматически продлевать подписку\n"
-        "- отключать просроченные профили\n\n"
-        "Для старта нажми кнопку ниже или введи /plans."
-    )
-    text = text.replace("UltimaVPN", "Win2Europe VPN")
-    await message.answer(text, reply_markup=user_keyboard())
+    await message.answer(start_message_text(), reply_markup=reply_menu_keyboard())
 
 
 @router.message(Command("plans"))
@@ -1180,12 +1081,7 @@ async def cmd_plans(message: Message) -> None:
             f"  {plan.description}"
         )
     lines.append("\nВыберите тариф кнопками под этим сообщением.")
-    return await message.answer("\n".join(lines), reply_markup=plans_menu_keyboard())
-    lines = ["Доступные тарифы:\n"]
-    for plan in PLANS.values():
-        lines.append(f"- {plan.title}: {plan.stars} ⭐, {plan.days} дней")
-    lines.append("\nПосле оплаты бот сам продлит доступ.")
-    await message.answer("\n".join(lines), reply_markup=plans_keyboard())
+    await message.answer("\n".join(lines), reply_markup=plans_menu_keyboard())
 
 
 @router.message(Command("myvpn"))
@@ -1193,7 +1089,7 @@ async def cmd_plans(message: Message) -> None:
 async def cmd_myvpn(message: Message) -> None:
     row = get_user(message.from_user.id)
     row = await refresh_user_connection(row)
-    return await message.answer(
+    await message.answer(
         formatted_user_status_text(row),
         parse_mode="HTML",
         disable_web_page_preview=True,
@@ -1204,37 +1100,33 @@ async def cmd_myvpn(message: Message) -> None:
 @router.message(Command("support"))
 @router.message(Command("paysupport"))
 async def cmd_support(message: Message) -> None:
-    return await message.answer(
+    await message.answer(
         "Поддержка Win2Europe VPN:\n"
         f"{SUPPORT_URL}\n\n"
         "Если оплата прошла, а ссылка не выдалась, напишите туда и пришлите свой Telegram ID.\n\n"
         + refund_policy_text(),
         reply_markup=support_menu_keyboard(),
     )
-    await message.answer(
-        f"Поддержка: {SUPPORT_USERNAME}\n"
-        "Если оплата прошла, а подписка не выдалась, напиши сюда и пришли свой Telegram ID."
-    )
 
 
 @router.message(F.text == MENU_TARIFFS)
 async def menu_plans(message: Message) -> None:
-    return await cmd_plans(message)
+    await cmd_plans(message)
 
 
 @router.message(F.text == MENU_MY_VPN)
 async def menu_myvpn(message: Message) -> None:
-    return await cmd_myvpn(message)
+    await cmd_myvpn(message)
 
 
 @router.message(F.text == MENU_SUPPORT)
 async def menu_support(message: Message) -> None:
-    return await cmd_support(message)
+    await cmd_support(message)
 
 
 @router.message(Command("refund"))
 async def cmd_refund(message: Message, bot: Bot) -> None:
-    return await submit_refund_request(message, bot)
+    await submit_refund_request(message, bot)
 
 
 @router.callback_query(F.data == "open_plans")
@@ -1243,30 +1135,24 @@ async def cb_open_plans(callback: CallbackQuery) -> None:
     for plan in PLANS.values():
         lines.append(f"- {plan.title}: {plan.stars} ⭐, {plan.days} дней")
     lines.append("\nВыберите тариф кнопками под этим сообщением.")
-    return await replace_callback_message(callback, "\n".join(lines), reply_markup=plans_menu_keyboard())
-    await callback.message.answer("Выбери тариф:", reply_markup=plans_keyboard())
-    await callback.answer()
+    await replace_callback_message(callback, "\n".join(lines), reply_markup=plans_menu_keyboard())
 
 
 @router.callback_query(F.data == "my_vpn")
 async def cb_my_vpn(callback: CallbackQuery) -> None:
     row = get_user(callback.from_user.id)
     row = await refresh_user_connection(row)
-    return await replace_callback_message(
+    await replace_callback_message(
         callback,
         formatted_user_status_text(row),
         reply_markup=main_menu_keyboard(),
         parse_mode="HTML",
     )
-    row = get_user(callback.from_user.id)
-    row = await refresh_user_connection(row)
-    await callback.message.answer(user_status_text(row))
-    await callback.answer()
 
 
 @router.callback_query(F.data == "back_to_start")
 async def cb_back_to_start(callback: CallbackQuery) -> None:
-    return await replace_callback_message(callback, start_message_text(), reply_markup=main_menu_keyboard())
+    await replace_callback_message(callback, start_message_text(), reply_markup=main_menu_keyboard())
 
 
 @router.callback_query(F.data == "request_refund")
@@ -1434,19 +1320,11 @@ async def on_successful_payment(message: Message) -> None:
     row = await refresh_user_connection(row)
     save_payment(charge_id, message.from_user.id, payload, plan)
     mark_order_paid(payload)
-    return await message.answer(
+    await message.answer(
         formatted_payment_success_text(plan, row),
         parse_mode="HTML",
         disable_web_page_preview=True,
         reply_markup=reply_menu_keyboard(),
-    )
-
-    await message.answer(
-        "Оплата получена.\n\n"
-        f"Тариф: {plan.title}\n"
-        f"Активна до: {fmt_ts(row['paid_until'])}\n"
-        f"Подписка: {row['subscription_url']}\n\n"
-        "Сохраните ссылку и импортируйте ее в VPN-клиент. Если доступ не заработает, напишите в поддержку."
     )
 
 
